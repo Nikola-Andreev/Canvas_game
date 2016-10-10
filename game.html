@@ -315,3 +315,42 @@ function toggleKey(keyCode, isPressed) {
             }
         }
     }
+    function gameOver() {
+        var element = document.getElementById('gameover');
+        element.style.visibility = 'visible';
+        element = document.getElementById('refresh');
+        element.style.display = 'block';
+        element = document.getElementById(hero.element);
+        element.style.visibility = 'hidden';
+
+        element= document.getElementById(enemy.element);
+        element.style.visibility = 'hidden';
+        element= document.getElementById(rocket.element);
+        element.style.visibility = 'hidden';
+        gameIsOver = true;
+    }
+
+    function playAgain(){
+        return location.reload();
+    }
+
+    function showSprites() {
+        setPosition(hero)
+        setPosition(rocket)
+        for (var i = 0; i < enemies.length; i++) {
+            setPosition(enemies[i])
+        }
+        let healthElement = document.getElementById('health')
+        healthElement.innerHTML = 'Health: ' + health
+        let scoreElement = document.getElementById('score')
+        scoreElement.innerHTML = 'SCORE: ' + score
+    }
+    // movement enemies
+    function updatePositions() {
+        for (var i = 0; i < enemies.length; i++) {
+            enemies[i].y += 4
+            enemies[i].x += getRandom(7) - 3
+            boundMovement(enemies[i], true)
+        }
+        rocket.y -= 40;
+    }
