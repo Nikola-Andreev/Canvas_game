@@ -250,3 +250,68 @@ function toggleKey(keyCode, isPressed) {
         shoot.play()
     }
 }
+
+    function intersects(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function handleControls() {
+        if (controller.up) {
+            hero.y -= HERO_MOVEMENT *2.5
+        }
+        if (controller.down) {
+            hero.y += HERO_MOVEMENT *2.5
+        }
+        if (controller.left) {
+            hero.x -= HERO_MOVEMENT *2.5
+        }
+        if (controller.right) {
+            hero.x += HERO_MOVEMENT *2.5
+        }
+        if (controller.space && rocket.y < 50) {
+            rocket.x = hero.x + 7.5
+            rocket.y = hero.y - rocket.h
+        }
+        boundMovement(hero);
+    }
+    function checkCollisions() {
+        for (let i = 0; i < enemies.length; i++) {
+            if (intersects(rocket, enemies[i])) {
+                let element = document.getElementById(enemies[i].element)
+                element.style.visibility = 'hidden'
+                element.parentNode.removeChild(element)
+                enemies.splice(i, 1)
+                i--
+                rocket.y = -rocket.h
+                score += 10
+                boom.play()
+            } else if (intersects(hero, enemies[i])){
+                if (health <= 0) {
+                    zap.pause()
+                    shoot = undefined
+                    gameOver()
+                } else {
+                    health -= 5
+                    if (health>=65) {
+                        ctx.clearRect(0, 590, (100 * 0.01) * 140, 20)
+                        ctx.fillStyle = "green"
+                        ctx.fillRect(0, 590, (health * 0.01) * 140, 20)
+                    } else if(health < 65 && health >= 30) {
+                        ctx.clearRect(0, 590, (100 * 0.01) * 140, 20)
+                        ctx.fillStyle = "yellow";
+                        ctx.fillRect(0, 590, (health * 0.01) * 140, 20)
+                    } else {
+                        ctx.clearRect(0, 590, (100 * 0.01) * 140, 20)
+                        ctx.fillStyle = "red";
+                        ctx.fillRect(0, 590, (health * 0.01) * 140, 20)
+                    }
+                }
+            } else if (enemies[i].y + enemies[i].h >= 630) {
+                let element = document.getElementById(enemies[i].element)
+                element.style.visibility = 'hidden'
+                element.parentNode.removeChild(element)
+                enemies.splice(i, 1)
+                i--
+            }
+        }
+    }
