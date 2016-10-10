@@ -167,3 +167,86 @@ function Game() {
         animate();
     }
 }
+function animate() {
+    requestAnimFrame( animate )
+    game.background.draw()
+}
+
+window.requestAnimFrame = (function(){
+    return  window.requestAnimationFrame       ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame    ||
+            window.oRequestAnimationFrame      ||
+            window.msRequestAnimationFrame     ||
+            function(/* function */ callback, /* DOMElement */ element){
+                window.setTimeout(callback, 1000 / 60)
+            }
+})()
+
+let canvas = document.getElementById('background')
+let ctx = canvas.getContext("2d")
+let health = 100;ctx.fillStyle = "green";ctx.fillRect(0,590,(health*0.01)*140,20)//Whenever you lose healthhealth-=1;
+
+let LEFT_KEY = 37
+let RIGHT_KEY = 39
+let UP_KEY = 38
+let DOWN_KEY = 40
+let SPACE_KEY = 32
+let HERO_MOVEMENT = 5
+
+let lastLoopRun = 0
+let score = 0
+let iterations = 0
+
+let controller = {}
+let enemies = []
+
+function boundMovement(sprite, ignoreY) {
+    if (sprite.x < 5) {
+        sprite.x = 5
+    }
+    if (!ignoreY && sprite.y < 35) {
+        sprite.y = 35
+    }
+    if (sprite.x + sprite.w > 618) {
+        sprite.x = 618 - sprite.w
+    }
+    if (!ignoreY && sprite.y + sprite.h > 580) {
+        sprite.y = 580 - sprite.h
+    }
+}
+//position of hero
+function setPosition(sprite) {
+    let el = document.getElementById(sprite.element);
+    el.style.left = sprite.x + 'px'
+    el.style.top = sprite.y + 'px'
+}
+
+function createSprite(element, x, y, w, h) {
+    let result = {}
+    result.element = element
+    result.x = x
+    result.y = y
+    result.w = w
+    result.h = h
+    return result
+}
+
+function toggleKey(keyCode, isPressed) {
+    if (keyCode == LEFT_KEY) {
+        controller.left = isPressed
+    }
+    if (keyCode == RIGHT_KEY) {
+        controller.right = isPressed
+    }
+    if (keyCode == UP_KEY) {
+        controller.up = isPressed
+    }
+    if (keyCode == DOWN_KEY) {
+        controller.down = isPressed
+    }
+    if (keyCode == SPACE_KEY) {
+        controller.space = isPressed
+        shoot.play()
+    }
+}
