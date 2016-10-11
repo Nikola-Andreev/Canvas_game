@@ -1,0 +1,477 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Space Shooter</title>
+
+<style>
+canvas {
+    background-image: url(images/space2.png);
+    border: 2px solid black;
+    background-size: cover;
+}
+
+#rocket {
+    background-color: yellow;
+    width: 3px;
+    height: 10px;
+    position: absolute;
+    margin-left: 23px;
+}
+
+#hero {
+    background-image: url('images/player.png');
+    width: 59px;
+    height: 58px;
+    position: absolute;
+}
+
+#refresh{
+    color: red;
+    font-size: 20px;
+    position: absolute;
+    left: 240px;
+    top: 300px;
+    display:none;
+    z-index:2;
+    margin-left: 40px;
+}
+
+.enemy {
+    background-image: url('images/Planet 01.png');
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    margin-left: 12px;
+}
+.enemy2 {
+    background-image: url('images/Planet 02.png');
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    margin-left: 12px;
+}
+.enemy3 {
+    background-image: url('images/Planet 03.png');
+    width: 40px;
+    height: 40px;
+    position: absolute;
+    margin-left: 12px;
+}
+
+#score {
+    color: blue;
+    font-size: 18pt;
+    position: absolute;
+    left: 20px;
+    top: 20px;
+    z-index:2;
+}
+
+#gameover {
+    color: red;
+    font-size: 45px;
+    position: absolute;
+    left: 205px;
+    top: 240px;
+    visibility: hidden;
+    z-index:2;
+}
+#health{
+    color: green;
+}
+</style>
+</head>
+<body onload="init()">
+    <!-- The canvas for the panning background -->
+<canvas id="background" width="640" height="610"></canvas>
+
+    <div id="hero"></div>
+    <div id="rocket"></div>
+    <div id="score"></div>
+    <div id="gameover">GAME OVER</div>
+<div id="health"></div>
+    <button id="refresh" onclick="playAgain()">Play Again</button>
+
+<script>
+
+let game = new Game()
+let gameIsOver = false
+function init() {
+    if(game.init())
+        game.start()
+}
+
+let imageRepository = new function() {
+    // Define images
+    this.empty = null
+    this.background = new Image()
+
+    // Set images src
+    this.background.src = "space2.png"
+}
+function Drawable() {
+    this.init = function(x, y) {
+        // Defualt variables
+        this.x = x
+        this.y = y
+    }
+
+    this.speed = 0
+    this.canvasWidth = 0
+    this.canvasHeight = 0
+
+    // Define abstract function to be implemented in child objects
+    this.draw = function() {
+    }
+}
+
+function Background() {
+    this.speed = 1 // Redefine speed of the background for panning
+
+    // Implement abstract function
+    this.draw = function() {
+        // Pan background
+        this.y += this.speed
+        this.context.drawImage(imageRepository.background, this.x +140, this.y)
+        // Draw another image at the top edge of the first image
+        this.context.drawImage(imageRepository.background, this.x, this.y - this.canvasHeight -60)
+        // If the image scrolled off the screen, reset
+        if (this.y >= this.canvasHeight)
+            this.y = 0
+    };
+}
+// Set Background to inherit properties from Drawable
+Background.prototype = new Drawable()
+
+function Game() {
+    this.init = function() {
+        // Get the canvas element
+        this.bgCanvas = document.getElementById('background');
+        // Test to see if canvas is supported
+        if (this.bgCanvas.getContext) {
+            this.bgContext = this.bgCanvas.getContext('2d')
+            // Initialize objects to contain their context and canvas
+            Background.prototype.context = this.bgContext;
+            Background.prototype.canvasWidth = this.bgCanvas.width;
+            Background.prototype.canvasHeight = this.bgCanvas.height;
+            // Initialize the background object
+            this.background = new Background()
+            this.background.init(0,0) // Set draw point to 0,0
+            return true;
+        } else {
+            return false;
+        }
+    }
+    // Start the animation loop
+    this.start = function() {
+        animate();
+    }
+}
+function animate() {
+    requestAnimFrame( animate )
+    game.background.draw()
+}
+
+window.requestAnimFrame = (function(){
+    return  window.requestAnimationFrame       ||
+            window.webkitRequestAnimationFrame ||
+            window.mozRequestAnimationFrame    ||
+            window.oRequestAnimationFrame      ||
+            window.msRequestAnimationFrame     ||
+            function(/* function */ callback, /* DOMElement */ element){
+                window.setTimeout(callback, 1000 / 60)
+            }
+})()
+
+let canvas = document.getElementById('background')
+let ctx = canvas.getContext("2d")
+let health = 100;ctx.fillStyle = "green";ctx.fillRect(0,590,(health*0.01)*140,20)//Whenever you lose healthhealth-=1;
+
+let LEFT_KEY = 37
+let RIGHT_KEY = 39
+let UP_KEY = 38
+let DOWN_KEY = 40
+let SPACE_KEY = 32
+let HERO_MOVEMENT = 5
+
+let lastLoopRun = 0
+let score = 0
+let iterations = 0
+
+let controller = {}
+let enemies = []
+
+function boundMovement(sprite, ignoreY) {
+    if (sprite.x < 5) {
+        sprite.x = 5
+    }
+    if (!ignoreY && sprite.y < 35) {
+        sprite.y = 35
+    }
+    if (sprite.x + sprite.w > 618) {
+        sprite.x = 618 - sprite.w
+    }
+    if (!ignoreY && sprite.y + sprite.h > 580) {
+        sprite.y = 580 - sprite.h
+    }
+}
+//position of hero
+function setPosition(sprite) {
+    let el = document.getElementById(sprite.element);
+    el.style.left = sprite.x + 'px'
+    el.style.top = sprite.y + 'px'
+}
+
+function createSprite(element, x, y, w, h) {
+    let result = {}
+    result.element = element
+    result.x = x
+    result.y = y
+    result.w = w
+    result.h = h
+    return result
+}
+
+function toggleKey(keyCode, isPressed) {
+    if (keyCode == LEFT_KEY) {
+        controller.left = isPressed
+    }
+    if (keyCode == RIGHT_KEY) {
+        controller.right = isPressed
+    }
+    if (keyCode == UP_KEY) {
+        controller.up = isPressed
+    }
+    if (keyCode == DOWN_KEY) {
+        controller.down = isPressed
+    }
+    if (keyCode == SPACE_KEY) {
+        controller.space = isPressed
+        shoot.play()
+    }
+}
+
+    function intersects(a, b) {
+        return a.x < b.x + b.w && a.x + a.w > b.x && a.y < b.y + b.h && a.y + a.h > b.y;
+    }
+
+    function handleControls() {
+        if (controller.up) {
+            hero.y -= HERO_MOVEMENT *2.5
+        }
+        if (controller.down) {
+            hero.y += HERO_MOVEMENT *2.5
+        }
+        if (controller.left) {
+            hero.x -= HERO_MOVEMENT *2.5
+        }
+        if (controller.right) {
+            hero.x += HERO_MOVEMENT *2.5
+        }
+        if (controller.space && rocket.y < 50) {
+            rocket.x = hero.x + 7.5
+            rocket.y = hero.y - rocket.h
+        }
+        boundMovement(hero);
+    }
+    function checkCollisions() {
+        for (let i = 0; i < enemies.length; i++) {
+            if (intersects(rocket, enemies[i])) {
+                let element = document.getElementById(enemies[i].element)
+                element.style.visibility = 'hidden'
+                element.parentNode.removeChild(element)
+                enemies.splice(i, 1)
+                i--
+                rocket.y = -rocket.h
+                score += 10
+                boom.play()
+            } else if (intersects(hero, enemies[i])){
+                if (health <= 0) {
+                    zap.pause()
+                    shoot = undefined
+                    gameOver()
+                } else {
+                    health -= 5
+                    if (health>=65) {
+                        ctx.clearRect(0, 590, (100 * 0.01) * 140, 20)
+                        ctx.fillStyle = "green"
+                        ctx.fillRect(0, 590, (health * 0.01) * 140, 20)
+                    } else if(health < 65 && health >= 30) {
+                        ctx.clearRect(0, 590, (100 * 0.01) * 140, 20)
+                        ctx.fillStyle = "yellow";
+                        ctx.fillRect(0, 590, (health * 0.01) * 140, 20)
+                    } else {
+                        ctx.clearRect(0, 590, (100 * 0.01) * 140, 20)
+                        ctx.fillStyle = "red";
+                        ctx.fillRect(0, 590, (health * 0.01) * 140, 20)
+                    }
+                }
+            } else if (enemies[i].y + enemies[i].h >= 630) {
+                let element = document.getElementById(enemies[i].element)
+                element.style.visibility = 'hidden'
+                element.parentNode.removeChild(element)
+                enemies.splice(i, 1)
+                i--
+            }
+        }
+    }
+    function gameOver() {
+        var element = document.getElementById('gameover');
+        element.style.visibility = 'visible';
+        element = document.getElementById('refresh');
+        element.style.display = 'block';
+        element = document.getElementById(hero.element);
+        element.style.visibility = 'hidden';
+
+        element= document.getElementById(enemy.element);
+        element.style.visibility = 'hidden';
+        element= document.getElementById(rocket.element);
+        element.style.visibility = 'hidden';
+        gameIsOver = true;
+    }
+
+    function playAgain(){
+        return location.reload();
+    }
+
+    function showSprites() {
+        setPosition(hero)
+        setPosition(rocket)
+        for (var i = 0; i < enemies.length; i++) {
+            setPosition(enemies[i])
+        }
+        let healthElement = document.getElementById('health')
+        healthElement.innerHTML = 'Health: ' + health
+        let scoreElement = document.getElementById('score')
+        scoreElement.innerHTML = 'SCORE: ' + score
+    }
+    // movement enemies
+    function updatePositions() {
+        for (var i = 0; i < enemies.length; i++) {
+            enemies[i].y += 4
+            enemies[i].x += getRandom(7) - 3
+            boundMovement(enemies[i], true)
+        }
+        rocket.y -= 40;
+    }
+function addEnemy() {
+    let interval = 50
+    if (iterations > 1500) {
+        interval = 5
+    } else if (iterations > 1000) {
+        interval = 20
+    } else if (iterations > 500) {
+        interval = 35
+    }
+    if (getRandom(interval) == 0) {
+
+        let elementName = 'enemy' + getRandom(1000000)
+        let enemy = createSprite(elementName, getRandom(650), 25, 35, 45)
+        let element = document.createElement('div')
+        element.id = enemy.element
+        element.className = 'enemy'
+        document.children[0].appendChild(element)
+
+        enemies[enemies.length] = enemy
+        let elementName2 = 'enemy2' + getRandom(1000000)
+        let enemy2 = createSprite(elementName2, getRandom(650), 25, 35, 45)
+        let element2 = document.createElement('div')
+        element2.id = enemy2.element
+        element2.className = 'enemy2'
+        document.children[0].appendChild(element2)
+
+        enemies[enemies.length] = enemy2
+        let elementName3 = 'enemy3' + getRandom(1000000)
+        let enemy3 = createSprite(elementName3, getRandom(650), 25, 35, 45)
+        let element3 = document.createElement('div')
+        element3.id = enemy3.element
+        element3.className = 'enemy3'
+        document.children[0].appendChild(element3)
+        enemies[enemies.length] = enemy3
+    }
+}
+function getRandom(maxSize) {
+    return parseInt(Math.random() * maxSize)
+}
+
+//the actual game action
+function loop() {
+    if ((new Date).getTime() - lastLoopRun > 40) {
+        updatePositions()
+        handleControls()
+        checkCollisions()
+        addEnemy()
+        showSprites()
+
+        lastLoopRun = (new Date).getTime()
+        iterations++
+    }
+    setTimeout('loop()', 2)
+}
+
+document.onkeydown = function (evt) {
+    toggleKey(evt.keyCode, true)
+}
+document.onkeyup = function (evt) {
+    toggleKey(evt.keyCode, false)
+}
+
+let hero = createSprite('hero', 330, 560, 20, 20)
+let rocket = createSprite('rocket', 0, -120, 5, 13)
+loop()
+
+function hasAudio() {
+    let audio = document.createElement('audio')
+    if (audio && audio.canPlayType) {
+        let ogg = audio.canPlayType('audio/ogg; codecs="vorbis"'),
+                mp3 = audio.canPlayType('audio/mpeg;'),
+                wav = audio.canPlayType('audio/wav; codecs="1"')
+        return {
+            ogg: (ogg === 'probably') || (ogg === 'maybe'),
+            mp3: (mp3 === 'probably') || (mp3 === 'maybe'),
+            wav: (wav === 'probably') || (wav === 'maybe')
+        };
+    }
+    return false;
+}
+function createAudio(src, options, canplay) {
+    let audio = document.createElement('audio')
+    audio.addEventListener('canplay', canplay, false)
+    audio.volume = options.volume || 0.5
+    audio.loop   = options.loop
+    audio.src    = src
+    return audio
+}
+
+let shoot = createAudio('sounds/shoot.mp3', { volume: 1.0 }, function() {
+    // ready for zap.play()
+})
+
+let boom = createAudio('sounds/boom.mp3', { volume: 1.0 }, function() {
+    // ready for zap.play()
+})
+
+let zap = createAudio('sounds/zap1.mp3', { volume: 1.0 }, function() {
+    // ready for zap.play()
+})
+
+zap.play()
+
+function loadSounds(names, callback) {
+
+    let n,name,
+            result = {},
+            count  = names.length,
+            canplay = function() { if (--count == 0) callback(result) }
+
+    for(n = 0 ; n < names.length ; n++) {
+        name = names[n]
+        result[name] = document.createElement('audio')
+        result[name].addEventListener('canplay', canplay, false);
+        result[name].src = "sounds/" + name + ".mp3"
+    }
+
+}
+</script>
+</body>
+</html>
