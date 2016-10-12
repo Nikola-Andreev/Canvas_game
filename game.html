@@ -261,7 +261,7 @@ function toggleKey(keyCode, isPressed) {
     function showSprites() {
         setPosition(hero)
         setPosition(rocket)
-        for (var i = 0; i < enemies.length; i++) {
+        for (let i = 0; i < enemies.length; i++) {
             setPosition(enemies[i])
         }
         let healthElement = document.getElementById('health')
@@ -271,7 +271,7 @@ function toggleKey(keyCode, isPressed) {
     }
     // movement enemies
     function updatePositions() {
-        for (var i = 0; i < enemies.length; i++) {
+        for (let i = 0; i < enemies.length; i++) {
             enemies[i].y += 4
             enemies[i].x += getRandom(7) - 3
             boundMovement(enemies[i], true)
